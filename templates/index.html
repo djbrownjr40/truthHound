@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ディープフェイク検知</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f9;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                /* text-align: center;
+                margin-top: 50px; */
+            }
+            .container {
+                background-color: #ffffff;
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow:  0 4px 10px rgba(0, 0, 0, 0.1);
+                width: 400px;
+                text-align: center;
+            }
+
+            h1 {
+                font-size: 24px;
+                color: #333;
+                margin-bottom: 20px;
+            }
+
+            label {
+                display: inline-block;
+                background-color: #0E273C;
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+                transition: background-color 0.3s ease;
+            }
+
+            label:hover {
+                background-color: #8AC6D0;
+            }
+
+            #submitButton {
+                display: none;
+                background-color: #582630;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+                transition: background-color 0.3s ease;
+                border: none;
+            }
+
+            #submitButton:hover {
+                background-color: #A54657;
+            }
+           
+            #image-preview img {
+                margin-top: 20px;
+                max-width: 100%;
+                max-height: auto;
+                border-radius: 8px;          
+            }
+
+            #imagePreview {
+                margin-top: 25px;
+            }
+
+            input[type="file"]{
+                display: none;
+            }
+            
+            .prediction {
+                margin-top: 20px;
+                font-size: 18px;
+                margin-top: 20px;
+                border-radius: 8px;
+                font-weight: bold;
+
+            }
+        
+            .confidence {
+                margin-top: 20px;
+                font-size: 18px;
+                margin-top: 20px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+        
+            .real {
+                background-color: #BFE8FF; /* Light blue background */
+                color: #003366; /* Dark blue text */
+            }
+
+            .fake {
+                background-color: #FFB3B3; /* Light red background */
+                color: #990000; /* Dark red text */
+            }
+
+            .error {
+                color: red;
+            }
+
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>ディープフェイク検知</h1>
+            <form id="uploadForm" enctype="multipart/form-data">
+                <input type="file" id="imageFile" name="file" accept="image/*" required />
+                <label for="imageFile">画像を選択</label>
+                <button type="submit" id="submitButton">画像をアップロード</button>
+            </form>
+
+            <div id="imagePreview" class="uploaded-image"></div>
+            <div id="predictionResult" class="prediction"></div>
+            <div id="confidenceResult" class="confidence"></div>
+
+        </div>
+        <script>
+            const uploadForm = document.getElementById('uploadForm');
+            const imageFile = document.getElementById('imageFile');
+            const imagePreview = document.getElementById('imagePreview');
+            const predictionResult = document.getElementById('predictionResult');
+            const submitButton = document.getElementById('submitButton');
+
+            // listen for file input change
+            imageFile.addEventListener('change', function(){
+                if (imageFile.files.length > 0) {
+                    submitButton.style.display = 'inline-block';
+                } else {
+                    submitButton.style.display = 'none';
+                }
+            });
+
+            uploadForm.addEventListener('submit', function(event){
+                event.preventDefault();
+
+                const formData = new FormData();
+                formData.append('file', imageFile.files[0]);
+
+            fetch("/predict", {
+                method: "POST",
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.prediction) {
+                    imagePreview.innerHTML = `<img src="${data.img_url}" alt="Uploaded Image" width="300">`;
+                    
+                    if(data.prediction === "real") {
+                        predictionResult.classList.add("real");
+                        predictionResult.classList.remove("fake");
+                    } else {
+                        predictionResult.classList.add("fake");
+                        predictionResult.classList.remove("real");
+                    }
+
+                    predictionResult.textContent = `予測: ${data.prediction}`;
+                    confidenceResult.textContent = `精度: ${data.confidence.toFixed(2)*100}%`;
+                } else {
+                    predictionResult.textContent = `Error: ${data.error}`;
+                }
+            })
+                    .catch(error => {
+                        console.error('Error', error)
+                        predictionResult.textContent = 'An error occurred during the upload or prediction.';
+                    });
+                });
+        </script>
+    </body>
+</html>
